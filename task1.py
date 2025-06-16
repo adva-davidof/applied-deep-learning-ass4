@@ -9,9 +9,9 @@ import torch.optim as optim
 from models import ConvNet
 
 TRAINED_MODEL_PATH = './trainedModels/cifar_net.pth'
-BATCH_SIZE = 4
+BATCH_SIZE = 128
 LEARNING_RATE = 0.001
-EPOCHS = 2
+EPOCHS = 3
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -23,64 +23,45 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuff
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False)
 
-dataiter = iter(trainloader)
-images, labels = next(dataiter)
-
-def imshow(img):
-    img = img / 2 + 0.5     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-
-# show images
-imshow(torchvision.utils.make_grid(images))
-# print labels
-print(' '.join(f'{classes[labels[j]]:5s}' for j in range(BATCH_SIZE)))
-
 convNet = ConvNet()
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(convNet.parameters(), lr=LEARNING_RATE, momentum=0.9)
+optimizer = torch.optim.Adam(convNet.parameters(), lr=LEARNING_RATE)
+losses_for_plot = [[],[]]
+step_index  =0
 
+convNet.train()
 for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
     running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
+    for i, data in enumerate(trainloader):
+        step_index += 1
         inputs, labels = data
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        # forward + backward + optimize
         outputs = convNet(inputs)
         loss = criterion(outputs, labels)
+
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         # print statistics
         running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+        if (i+1) % 100 == 0:    # print every 100 mini-batches
+            losses_for_plot[1].append(step_index)
+            losses_for_plot[0].append(running_loss / 100)
+
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
             running_loss = 0.0
 
 print('Finished Training')
 torch.save(convNet.state_dict(), TRAINED_MODEL_PATH)
 
-
-
-dataiter = iter(testloader)
-images, labels = next(dataiter)
-
-# print images
-imshow(torchvision.utils.make_grid(images))
-print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(BATCH_SIZE)))
-
-outputs = convNet(images)
-_, predicted = torch.max(outputs, 1)
-
-print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}'
-                              for j in range(BATCH_SIZE)))
+plt.plot(losses_for_plot[1], losses_for_plot[0])
+plt.title('Task 1 - CNN Loss')
+plt.xlabel('Training Steps')
+plt.ylabel('Loss')
+plt.show()
 
 correct = 0
 total = 0
