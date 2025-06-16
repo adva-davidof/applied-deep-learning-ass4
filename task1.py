@@ -63,6 +63,7 @@ plt.xlabel('Training Steps')
 plt.ylabel('Loss')
 plt.show()
 
+convNet.eval()  # Set the model to evaluation mode
 correct = 0
 total = 0
 # since we're not training, we don't need to calculate the gradients for our outputs

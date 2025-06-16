@@ -23,9 +23,9 @@ testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True
 testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False)
 
 deconvNet = DeconvNet()
-criterion1 = torch.nn.CrossEntropyLoss()
-criterion2 = torch.nn.MSELoss()
-loss2Weight = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
+criterion_ce = torch.nn.CrossEntropyLoss()
+criterion_rec = torch.nn.MSELoss()
+Lambda = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
 optimizer = torch.optim.Adam(deconvNet.parameters(), lr=LEARNING_RATE)
 losses_for_plot = [[], []] # Value of loss and number of steps
 steps = 0
@@ -38,14 +38,14 @@ for epoch in range(EPOCHS):
         steps += 1
 
         predictions, latents = deconvNet(images)
-        loss1 = criterion1(predictions, labels)
-        loss2 = criterion2(latents, images)
+        loss_ce = criterion_ce(predictions, labels)
+        loss_rec = criterion_rec(latents, images)
 
         optimizer.zero_grad()
-        (loss1 + loss2Weight*loss2).backward()
+        (loss_ce + Lambda*loss_rec).backward()
         optimizer.step()
 
-        running_loss += (loss1 + loss2Weight*loss2).item()
+        running_loss += (loss_ce + Lambda*loss_rec).item()
         if (i+1) % 100 == 0:
             losses_for_plot[0].append(running_loss/100)
             losses_for_plot[1].append(steps)
@@ -57,7 +57,9 @@ plt.plot(losses_for_plot[1], losses_for_plot[0], '-*')
 plt.title('Task 2 - Conv "hybrid" Loss after t Steps')
 plt.xlabel('Steps (t)')
 plt.ylabel('Loss = Lce + l*Lrec')
+plt.show()
 
+deconvNet.eval()
 correct = 0
 total = 0
 # since we're not training, we don't need to calculate the gradients for our outputs

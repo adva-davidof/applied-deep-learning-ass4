@@ -63,7 +63,7 @@ class DeconvNet(nn.Module):
         y = self.fc3(y)
 
         # Deconv part
-        x_ = self.deconv1(F.relu(self.unpool(x, indices2, output_size=size2)))
-        x_ = self.deconv2(F.relu(self.unpool(x_, indices1, output_size=size1)))
+        deconved_x = self.deconv1(F.relu(self.unpool(x, indices2, output_size=size2)))
+        deconved_x = self.deconv2(F.relu(self.unpool(deconved_x, indices1, output_size=size1)))
 
-        return y, x_
+        return y, deconved_x
