@@ -6,10 +6,13 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from models import Conv
+from models import ConvNet
 
 TRAINED_MODEL_PATH = './trainedModels/cifar_net.pth'
 BATCH_SIZE = 4
+LEARNING_RATE = 0.001
+EPOCHS = 2
+
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -34,12 +37,12 @@ imshow(torchvision.utils.make_grid(images))
 # print labels
 print(' '.join(f'{classes[labels[j]]:5s}' for j in range(BATCH_SIZE)))
 
-convNet = Conv()
+convNet = ConvNet()
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(convNet.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(convNet.parameters(), lr=LEARNING_RATE, momentum=0.9)
 
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
