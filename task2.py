@@ -22,9 +22,52 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuff
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False)
 
+class DeconvNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Conv layers
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.pool = nn.MaxPool2d(2, 2, return_indices=True)
+
+        # Deconv layers
+        self.deconv1 = nn.ConvTranspose2d(16, 6, 5)
+        self.deconv2 = nn.ConvTranspose2d(6, 3, 5)
+        self.unpool = nn.MaxUnpool2d(2, 2)
+
+        # Fully-Connected layers
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x):
+        # Conv part
+        x = F.relu(self.conv1(x))
+        size1 = x.size()
+        x, indices1 = self.pool(x)
+
+        x = F.relu(self.conv2(x))
+        size2 = x.size()
+        x, indices2 = self.pool(x)
+
+        # Fully-Connected part
+        y = torch.flatten(x, 1) # flatten all dimensions except batch
+        y = F.relu(self.fc1(y))
+        y = F.relu(self.fc2(y))
+        y = self.fc3(y)
+
+        # Deconv part
+        deconved_x = self.deconv1(F.relu(self.unpool(x, indices2, output_size=size2)))
+        deconved_x = self.deconv2(F.relu(self.unpool(deconved_x, indices1, output_size=size1)))
+
+        return y, deconved_x
+
 deconvNet = DeconvNet()
+
 criterion_ce = torch.nn.CrossEntropyLoss()
 criterion_rec = torch.nn.MSELoss()
+
 Lambda = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
 optimizer = torch.optim.Adam(deconvNet.parameters(), lr=LEARNING_RATE)
 losses_for_plot = [[], []] # Value of loss and number of steps
