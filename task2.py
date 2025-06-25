@@ -6,11 +6,11 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from models import DeconvNet
 
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
 EPOCHS = 30
+LAMBDA = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -68,7 +68,6 @@ deconvNet = DeconvNet()
 criterion_ce = torch.nn.CrossEntropyLoss()
 criterion_rec = torch.nn.MSELoss()
 
-Lambda = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
 optimizer = torch.optim.Adam(deconvNet.parameters(), lr=LEARNING_RATE)
 losses_for_plot = [[], []] # Value of loss and number of steps
 steps = 0
@@ -85,10 +84,10 @@ for epoch in range(EPOCHS):
         loss_rec = criterion_rec(latents, images)
 
         optimizer.zero_grad()
-        (loss_ce + Lambda*loss_rec).backward()
+        (loss_ce + LAMBDA*loss_rec).backward()
         optimizer.step()
 
-        running_loss += (loss_ce + Lambda*loss_rec).item()
+        running_loss += (loss_ce + LAMBDA*loss_rec).item()
         if (i+1) % 100 == 0:
             losses_for_plot[0].append(running_loss/100)
             losses_for_plot[1].append(steps)
