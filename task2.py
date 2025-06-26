@@ -5,12 +5,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
-EPOCHS = 30
-LAMBDA = 10 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
+EPOCHS = 3
+LAMBDA = 1 # "Lambda" "parameter for the hybrid loss (the weight of the Lrec loss)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -27,17 +26,17 @@ class DeconvNet(nn.Module):
         super().__init__()
 
         # Conv layers
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.conv1 = nn.Conv2d(3, 32, 5)
+        self.conv2 = nn.Conv2d(32, 64, 5)
         self.pool = nn.MaxPool2d(2, 2, return_indices=True)
 
         # Deconv layers
-        self.deconv1 = nn.ConvTranspose2d(16, 6, 5)
-        self.deconv2 = nn.ConvTranspose2d(6, 3, 5)
+        self.deconv1 = nn.ConvTranspose2d(64, 32, 5)
+        self.deconv2 = nn.ConvTranspose2d(32, 3, 5)
         self.unpool = nn.MaxUnpool2d(2, 2)
 
         # Fully-Connected layers
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc1 = nn.Linear(64 * 5 * 5, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
@@ -78,28 +77,29 @@ for epoch in range(EPOCHS):
 
     for i, (images, labels) in enumerate(trainloader):
         steps += 1
+        optimizer.zero_grad()
 
         predictions, latents = deconvNet(images)
         loss_ce = criterion_ce(predictions, labels)
         loss_rec = criterion_rec(latents, images)
 
-        optimizer.zero_grad()
         (loss_ce + LAMBDA*loss_rec).backward()
         optimizer.step()
 
         running_loss += (loss_ce + LAMBDA*loss_rec).item()
-        if (i+1) % 100 == 0:
-            losses_for_plot[0].append(running_loss/100)
+        if (steps+1) % 2000 == 0:
+            losses_for_plot[0].append(running_loss/2000)
             losses_for_plot[1].append(steps)
 
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
             running_loss = 0.0
 
 plt.plot(losses_for_plot[1], losses_for_plot[0], '-*')
 plt.title('Task 2 - Conv "hybrid" Loss after t Steps')
-plt.xlabel('Steps (t)')
+plt.xlabel('Steps')
 plt.ylabel('Loss = Lce + l*Lrec')
-plt.show()
+plt.savefig('loss_task2.png')
+
 
 deconvNet.eval()
 correct = 0
@@ -119,17 +119,19 @@ print(f'Accuracy of the network on the 10000 test images: {100 * correct // tota
 
 unnormalize = transforms.Normalize(mean=[-1.0, -1.0, -1.0],std=[2.0, 2.0, 2.0])
 
+PICTURES_AMOUNT = 3
+
 fig = plt.figure(constrained_layout=True)
 (origFig, deconvFig) = fig.subfigures(2, 1)
-axesOrigin = origFig.subplots(1, 3)
-axesDeconv = deconvFig.subplots(1, 3)
+axesOrigin = origFig.subplots(1, PICTURES_AMOUNT)
+axesDeconv = deconvFig.subplots(1, PICTURES_AMOUNT)
 
 fig.suptitle('Original and Reconstructed Image Comparison', fontsize='18')
 origFig.suptitle('Original Images', color='b')
 deconvFig.suptitle('Reconstructed Images', color='r')
 
-for i in range(3):
-    imgInx = i+6
+for i in range(PICTURES_AMOUNT):
+    imgInx = i
 
     originalImg = unnormalize(images[imgInx])
     originalImg = np.clip(originalImg, 0, 1)

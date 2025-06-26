@@ -8,14 +8,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 import random
 
-SEED = 42
-torch.manual_seed(SEED)
-random.seed(SEED)
-np.random.seed(SEED)
 TRAINED_MODEL_PATH = './trainedModels/cifar_net.pth'
-BATCH_SIZE = 128
+BATCH_SIZE = 4
 LEARNING_RATE = 0.001
-EPOCHS = 7
+EPOCHS = 2
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -38,8 +34,6 @@ def imshow(img):
 dataiter = iter(trainloader)
 images, labels = next(dataiter)
 
-# show images
-# imshow(torchvision.utils.make_grid(images[:4]))
 # print labels
 print(' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 
@@ -65,8 +59,7 @@ class ConvNet(nn.Module):
 convNet = ConvNet()
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(convNet.parameters(), lr=LEARNING_RATE)
-# optimizer = optim.SGD(convNet.parameters(), lr=LEARNING_RATE, momentum=0.5)
+optimizer = optim.SGD(convNet.parameters(), lr=LEARNING_RATE, momentum=0.9)
 losses_for_plot = [[],[]]
 step_index = 0
 
@@ -89,11 +82,11 @@ for epoch in range(EPOCHS):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if (i+1) % 100 == 0:    # print every 100 mini-batches
+        if (i+1) % 2000 == 0:    
             losses_for_plot[1].append(step_index)
-            losses_for_plot[0].append(running_loss / 100)
+            losses_for_plot[0].append(running_loss / 2000)
 
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 100:.3f}')
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
             running_loss = 0.0
 
 print('Finished Training')
